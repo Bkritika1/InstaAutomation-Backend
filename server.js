@@ -745,13 +745,23 @@ const { image_url, caption, schedule_time } = req.body
 
 try{
 
+// await supabase
+// .from("scheduled_posts")
+// .insert({
+// user_id: session.igUserId,
+// image_url,
+// caption,
+// schedule_time
+// })
+
 await supabase
-.from("scheduled_posts")
-.insert({
-user_id: session.igUserId,
-image_url,
-caption,
-schedule_time
+.from("users")
+.upsert({
+  instagram_user_id: session.igUserId,
+  username: username,
+  access_token: session.accessToken
+},{
+  onConflict: "instagram_user_id"
 })
 
 res.json({
@@ -767,6 +777,8 @@ res.status(500).json({error:"Failed to schedule post"})
 }
 
 })
+
+
 
 /* -----------------------------
    6️⃣ CRON JOB
