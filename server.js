@@ -81,7 +81,9 @@ app.get("/auth/callback", async (req, res) => {
                 }
             }
         )
-
+        if (!igRes.data.instagram_business_account) {
+            return res.send("No Instagram business account connected")
+        }
         const igUserId = igRes.data.instagram_business_account.id
 
         /* -----------------------------
@@ -247,6 +249,8 @@ cron.schedule("* * * * *", async () => {
 
     const now = new Date().toISOString()
 
+    console.log("CRON CHECK:", now)
+
     const { data: posts } = await supabase
         .from("scheduled_posts")
         .select("*")
@@ -257,6 +261,8 @@ cron.schedule("* * * * *", async () => {
 
     for (const post of posts) {
 
+        console.log("Publishing scheduled post:", post.id)
+
         try {
 
             const { data: user } = await supabase
@@ -265,16 +271,12 @@ cron.schedule("* * * * *", async () => {
                 .eq("instagram_user_id", post.user_id)
                 .single()
 
-            if (!user) continue
-
             await publishToInstagram(
                 post.image_url,
                 post.caption,
                 user.access_token,
                 user.instagram_user_id
             )
-
-            console.log("Scheduled post published")
 
             await supabase
                 .from("scheduled_posts")
@@ -283,8 +285,7 @@ cron.schedule("* * * * *", async () => {
 
         } catch (err) {
 
-            console.log("Error publishing scheduled post")
-            console.log(err.response?.data || err.message)
+            console.log("CRON ERROR:", err.message)
 
         }
 
@@ -371,6 +372,40 @@ app.get("/posts", async (req, res) => {
         console.log(error.response?.data || error.message)
 
         res.status(500).json({ error: "Failed to fetch posts" })
+
+    }
+
+})
+
+/* -----------------------------
+   9️⃣ Get Scheduled Posts
+--------------------------------*/
+
+app.get("/scheduled-posts", async (req, res) => {
+
+    const { user_id } = req.query
+
+    try {
+
+        const { data, error } = await supabase
+            .from("scheduled_posts")
+            .select("*")
+            .eq("user_id", user_id)
+            .order("schedule_time", { ascending: false })
+
+        if (error) {
+            throw error
+        }
+
+        res.json(data)
+
+    } catch (err) {
+
+        console.log("Error fetching scheduled posts:", err)
+
+        res.status(500).json({
+            error: "Failed to fetch scheduled posts"
+        })
 
     }
 
