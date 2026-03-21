@@ -1,4 +1,4 @@
-require("dotenv").config()
+/* require("dotenv").config()
 const supabase = require("./config/supabase")
 
 
@@ -14,9 +14,6 @@ app.use(express.json())
 
 const PORT = process.env.PORT || 5000
 
-/* -----------------------------
-   1️⃣ Start Instagram Login
---------------------------------*/
 
 app.get("/auth/instagram", (req, res) => {
 
@@ -27,9 +24,6 @@ app.get("/auth/instagram", (req, res) => {
 
 })
 
-/* -----------------------------
-   2️⃣ OAuth Callback
---------------------------------*/
 
 app.get("/auth/callback", async (req, res) => {
 
@@ -57,7 +51,6 @@ app.get("/auth/callback", async (req, res) => {
 
         const accessToken = tokenResponse.data.access_token
 
-        // Get Facebook Pages
         const pages = await axios.get(
             `https://graph.facebook.com/v19.0/me/accounts`,
             {
@@ -71,7 +64,6 @@ app.get("/auth/callback", async (req, res) => {
             return res.send("No Facebook pages found")
         }
         const pageId = pages.data.data[0].id
-        // Get Instagram Business Account
         const igRes = await axios.get(
             `https://graph.facebook.com/v19.0/${pageId}`,
             {
@@ -86,9 +78,6 @@ app.get("/auth/callback", async (req, res) => {
         }
         const igUserId = igRes.data.instagram_business_account.id
 
-        /* -----------------------------
-           GET USERNAME
-        --------------------------------*/
 
         const igUser = await axios.get(
             `https://graph.facebook.com/v19.0/${igUserId}`,
@@ -102,9 +91,6 @@ app.get("/auth/callback", async (req, res) => {
 
         const username = igUser.data.username
 
-        /* -----------------------------
-           SAVE USER IN DATABASE
-        --------------------------------*/
 
         await supabase
             .from("users")
@@ -131,9 +117,6 @@ app.get("/auth/callback", async (req, res) => {
 console.log("CLIENT_ID:", process.env.CLIENT_ID)
 console.log("REDIRECT_URI:", process.env.REDIRECT_URI)
 
-/* -----------------------------
-   3️⃣ Publish Function
---------------------------------*/
 
 async function publishToInstagram(image_url, caption, accessToken, igUserId) {
 
@@ -163,9 +146,6 @@ async function publishToInstagram(image_url, caption, accessToken, igUserId) {
     )
 }
 
-/* -----------------------------
-   4️⃣ Publish Now
---------------------------------*/
 
 app.post("/post", async (req, res) => {
 
@@ -202,10 +182,6 @@ app.post("/post", async (req, res) => {
 
 })
 
-/* -----------------------------
-   5️⃣ Schedule Post
---------------------------------*/
-
 app.post("/schedule-post", async (req, res) => {
 
     const { user_id, image_url, caption, schedule_time } = req.body
@@ -239,11 +215,6 @@ app.post("/schedule-post", async (req, res) => {
 
 })
 
-
-
-/* -----------------------------
-   6️⃣ CRON JOB
---------------------------------*/
 
 cron.schedule("* * * * *", async () => {
 
@@ -293,10 +264,6 @@ cron.schedule("* * * * *", async () => {
 
 })
 
-/* -----------------------------
-   7️⃣ Get Instagram Account
---------------------------------*/
-
 app.get("/account", async (req, res) => {
 
     try {
@@ -335,9 +302,6 @@ app.get("/account", async (req, res) => {
 
 })
 
-/* -----------------------------
-   8️⃣ Get Instagram Posts
---------------------------------*/
 
 app.get("/posts", async (req, res) => {
 
@@ -377,9 +341,6 @@ app.get("/posts", async (req, res) => {
 
 })
 
-/* -----------------------------
-   9️⃣ Get Scheduled Posts
---------------------------------*/
 
 app.get("/scheduled-posts", async (req, res) => {
 
@@ -415,10 +376,34 @@ app.get("/test", (req, res) => {
     res.send("backend working")
 })
 
-/* -----------------------------
-   Server Start
---------------------------------*/
 console.log("SUPABASE URL:", process.env.SUPABASE_URL)
 app.listen(PORT, () => {
     console.log("Server running on port", PORT)
+}) */
+require("dotenv").config()
+
+const express = require("express")
+const cors = require("cors")
+
+const authRoutes = require("./routes/authRoutes")
+const postRoutes = require("./routes/postRoutes")
+const scheduleRoutes = require("./routes/scheduleRoutes")
+const accountRoutes = require("./routes/accountRoutes")
+
+const startCron = require("./jobs/cronPublisher")
+
+const app = express()
+
+app.use(cors())
+app.use(express.json())
+
+app.use(authRoutes)
+app.use(postRoutes)
+app.use(scheduleRoutes)
+app.use(accountRoutes)
+
+startCron()
+
+app.listen(5000, () => {
+    console.log("Server running on port 5000 🚀")
 })
